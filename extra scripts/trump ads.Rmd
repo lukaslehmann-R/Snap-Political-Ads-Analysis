@@ -1,0 +1,298 @@
+---
+title: "Snapchat Politcal Ads Analysis"
+author: "Lukas Lehmann"
+date: "2024-09-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(plotly)
+
+snap_political_ads <- read_csv("data/PoliticalAds(4)/PoliticalAds.csv") %>%
+  clean_names()
+
+```
+
+```{r}
+us_ads <- snap_political_ads %>%
+  filter(country_code == "united states")
+  
+us_ads_summary <- us_ads %>%
+  group_by(paying_advertiser_name) %>%
+  summarize(total_impressions = sum(impressions),
+            total_spend = sum(spend)) %>%
+  arrange(desc(total_spend))
+
+top_10_spenders <- head(us_ads_summary$paying_advertiser_name, 10)
+
+organization_1 <- top_10_spenders[1]
+organization_2 <- top_10_spenders[2]
+organization_3 <- top_10_spenders[3]
+organization_4 <- top_10_spenders[4]
+organization_5 <- top_10_spenders[5]
+organization_6 <- top_10_spenders[6]
+organization_7 <- top_10_spenders[7]
+organization_8 <- top_10_spenders[8]
+organization_9 <- top_10_spenders[9]
+organization_10 <- top_10_spenders[10]
+
+# Create a list of filtered tables for top 10 spenders
+org_ads_list <- lapply(top_10_spenders, function(advertiser_name) {
+  us_ads %>%
+    mutate(impressions_per_dollar = impressions/spend) %>%
+    filter(paying_advertiser_name == advertiser_name) %>%
+    select(paying_advertiser_name, spend, impressions, 
+           candidate_ballot_information, creative_url,
+           start_date, end_date) %>%
+    # Convert creative_url to clickable links
+    mutate(creative_url = paste0("<a href='", creative_url, "' target='_blank'>Link</a>"))
+})
+
+# Name the list elements for easier reference
+names(org_ads_list) <- top_10_spenders
+  
+```
+
+# Ads from Top 10 Advertisers {.tabset}
+
+The following is a collection of tables where you can see the actual text used in the titles and bodies of the advertisements. They are sorted in each tab by effectiveness - measured by impressions per dollar spent on advertisement.
+
+It is possible to scroll left/right and click the page numbers at the bottom to see more information from that advertiser.
+
+## `r top_10_spenders[1]`
+```{r}
+DT::datatable(org_ads_list[[1]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[2]`
+```{r}
+DT::datatable(org_ads_list[[2]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[3]`
+```{r}
+DT::datatable(org_ads_list[[3]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[4]`
+```{r}
+DT::datatable(org_ads_list[[4]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[5]`
+```{r}
+DT::datatable(org_ads_list[[5]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[6]`
+```{r}
+DT::datatable(org_ads_list[[6]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[7]`
+```{r}
+DT::datatable(org_ads_list[[7]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[8]`
+```{r}
+DT::datatable(org_ads_list[[8]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[9]`
+```{r}
+DT::datatable(org_ads_list[[9]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[10]`
+```{r}
+DT::datatable(org_ads_list[[10]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+
+
+```{r harris data prep}
+
+harris_ads <- us_ads %>%
+  filter(str_detect(candidate_ballot_information, "Harris"))
+
+harris_ads_summary <- harris_ads %>%
+  group_by(paying_advertiser_name) %>%
+  summarize(total_impressions = sum(impressions),
+            total_spend = sum(spend)) %>%
+  arrange(desc(total_spend))
+
+# Extract top 7 advertisers based on total spending from harris_ads_summary
+harris_advertisers <- head(harris_ads_summary$paying_advertiser_name, 7)
+
+# Create individual variables for the top 7 organizations
+organization_1 <- harris_advertisers[1]
+organization_2 <- harris_advertisers[2]
+organization_3 <- harris_advertisers[3]
+organization_4 <- harris_advertisers[4]
+organization_5 <- harris_advertisers[5]
+organization_6 <- harris_advertisers[6]
+organization_7 <- harris_advertisers[7]
+
+# Create a list of filtered tables for the top 7 spenders
+harris_ads_list <- lapply(harris_advertisers, function(advertiser_name) {
+  us_ads %>%
+    mutate(impressions_per_dollar = impressions/spend) %>%
+    filter(paying_advertiser_name == advertiser_name) %>%
+    select(paying_advertiser_name, spend, impressions, 
+           candidate_ballot_information, creative_url,
+           start_date, end_date) %>%
+    # Convert creative_url to clickable links
+    mutate(creative_url = paste0("<a href='", creative_url, "' target='_blank'>Link</a>"))
+})
+
+# Name the list elements for easier reference
+names(harris_ads_list) <- harris_advertisers
+
+  
+```
+
+# Harris - Official Campaign Spending
+
+```{r}
+harris_ads_official <- harris_ads %>%
+  filter(paying_advertiser_name == "Harris for President") %>%
+  mutate(start_date = as.Date(ymd_hms(start_date)),
+         end_date = as.Date(ymd_hms(end_date)))
+
+# Step 1: Create a sequence of dates for each ad
+harris_ads_expanded <- harris_ads_official %>%
+  # Generate a sequence of dates from start_date to end_date
+  mutate(date_range = purrr::map2(start_date, end_date, seq, by = "day")) %>%
+  # Expand rows so that each date in date_range has its own row
+  unnest(date_range) %>%
+  # Step 2: Calculate daily spend for each ad
+  group_by(adid) %>%
+  mutate(daily_spend = spend / n()) %>%
+  ungroup()
+
+# Step 3: Summarize daily spend across all ads
+daily_spending <- harris_ads_expanded %>%
+  group_by(date_range) %>%
+  summarize(total_daily_spend = sum(daily_spend)) %>%
+  arrange(date_range)
+
+# Step 4: Visualize using ggplot2 and plotly
+p <- ggplot(daily_spending, aes(x = date_range, y = total_daily_spend)) +
+  geom_line(color = "blue", size = 1.2) +
+  labs(title = "Harris for President - Daily Ad Spending",
+       x = "Date",
+       y = "Total Spending ($)") +
+  theme_minimal()
+
+# Convert ggplot to plotly
+ggplotly(p)
+
+aug_30_ads <- harris_ads %>%
+  filter(as.Date(start_date) == as.Date("2024-09-10"))
+
+# Display the filtered ads
+aug_30_ads$creative_url
+
+unique(harris_ads_official$regions_included)
+
+```
+
+# Pro-Harris Advertisers {.tabset}
+
+## `r harris_advertisers[1]`
+```{r}
+DT::datatable(harris_ads_list[[1]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r harris_advertisers[2]`
+```{r}
+DT::datatable(harris_ads_list[[2]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r harris_advertisers[3]`
+```{r}
+DT::datatable(harris_ads_list[[3]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r harris_advertisers[4]`
+```{r}
+DT::datatable(harris_ads_list[[4]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r harris_advertisers[5]`
+```{r}
+DT::datatable(harris_ads_list[[5]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r harris_advertisers[6]`
+```{r}
+DT::datatable(harris_ads_list[[6]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r harris_advertisers[7]`
+```{r}
+DT::datatable(harris_ads_list[[7]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+
+
+```{r trump data prep}
+
+trump_ads <- us_ads %>%
+  filter(str_detect(candidate_ballot_information, "Trump"))
+
+trump_ads_summary <- trump_ads %>%
+  group_by(paying_advertiser_name) %>%
+  summarize(total_impressions = sum(impressions),
+            total_spend = sum(spend)) %>%
+  arrange(desc(total_spend))
+
+# Extract top 7 advertisers based on total spending from trump_ads_summary
+trump_advertisers <- head(trump_ads_summary$paying_advertiser_name, 7)
+
+# Create individual variables for the top 7 organizations
+organization_1 <- trump_advertisers[1]
+organization_2 <- trump_advertisers[2]
+organization_3 <- trump_advertisers[3]
+organization_4 <- trump_advertisers[4]
+organization_5 <- trump_advertisers[5]
+organization_6 <- trump_advertisers[6]
+organization_7 <- trump_advertisers[7]
+
+# Create a list of filtered tables for the top 7 spenders
+trump_ads_list <- lapply(trump_advertisers, function(advertiser_name) {
+  us_ads %>%
+    mutate(impressions_per_dollar = impressions/spend) %>%
+    filter(paying_advertiser_name == advertiser_name) %>%
+    select(paying_advertiser_name, spend, impressions, 
+           candidate_ballot_information, creative_url,
+           start_date, end_date) %>%
+    # Convert creative_url to clickable links
+    mutate(creative_url = paste0("<a href='", creative_url, "' target='_blank'>Link</a>"))
+})
+
+# Name the list elements for easier reference
+names(trump_ads_list) <- trump_advertisers
+
+  
+```
+
+# Pro-Trump Advertisers {.tabset}
+
+## `r trump_advertisers[1]`
+```{r}
+DT::datatable(trump_ads_list[[1]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r trump_advertisers[2]`
+```{r}
+DT::datatable(trump_ads_list[[2]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r trump_advertisers[3]`
+```{r}
+DT::datatable(trump_ads_list[[3]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r trump_advertisers[4]`
+```{r}
+DT::datatable(trump_ads_list[[4]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r trump_advertisers[5]`
+```{r}
+DT::datatable(trump_ads_list[[5]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r trump_advertisers[6]`
+```{r}
+DT::datatable(trump_ads_list[[6]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r trump_advertisers[7]`
+```{r}
+DT::datatable(trump_ads_list[[7]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+

@@ -1,0 +1,107 @@
+---
+title: "Snapchat Politcal Ads Analysis"
+author: "Lukas Lehmann"
+date: "2024-09-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(plotly)
+library(scales)
+
+snap_political_ads <- read_csv("data/PoliticalAds(4)/PoliticalAds.csv") %>%
+  clean_names()
+
+```
+
+```{r}
+us_ads <- snap_political_ads %>%
+  filter(country_code == "united states")
+  
+us_ads_summary <- us_ads %>%
+  group_by(paying_advertiser_name) %>%
+  summarize(total_impressions = sum(impressions),
+            total_spend = sum(spend)) %>%
+  arrange(desc(total_spend))
+
+top_10_spenders <- head(us_ads_summary$paying_advertiser_name, 10)
+
+organization_1 <- top_10_spenders[1]
+organization_2 <- top_10_spenders[2]
+organization_3 <- top_10_spenders[3]
+organization_4 <- top_10_spenders[4]
+organization_5 <- top_10_spenders[5]
+organization_6 <- top_10_spenders[6]
+organization_7 <- top_10_spenders[7]
+organization_8 <- top_10_spenders[8]
+organization_9 <- top_10_spenders[9]
+organization_10 <- top_10_spenders[10]
+
+# Create a list of filtered tables for top 10 spenders
+org_ads_list <- lapply(top_10_spenders, function(advertiser_name) {
+  us_ads %>%
+    mutate(impressions_per_dollar = impressions/spend) %>%
+    filter(paying_advertiser_name == advertiser_name) %>%
+    select(paying_advertiser_name, spend, impressions, 
+           candidate_ballot_information, creative_url,
+           start_date, end_date) %>%
+    # Convert creative_url to clickable links
+    mutate(creative_url = paste0("<a href='", creative_url, "' target='_blank'>Link</a>"))
+})
+
+# Name the list elements for easier reference
+names(org_ads_list) <- top_10_spenders
+  
+```
+
+# Ads from Top 10 Advertisers {.tabset}
+
+The following is a collection of tables where you can see the actual text used in the titles and bodies of the advertisements. They are sorted in each tab by effectiveness - measured by impressions per dollar spent on advertisement.
+
+It is possible to scroll left/right and click the page numbers at the bottom to see more information from that advertiser.
+
+## `r top_10_spenders[1]`
+```{r}
+DT::datatable(org_ads_list[[1]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[2]`
+```{r}
+DT::datatable(org_ads_list[[2]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[3]`
+```{r}
+DT::datatable(org_ads_list[[3]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[4]`
+```{r}
+DT::datatable(org_ads_list[[4]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[5]`
+```{r}
+DT::datatable(org_ads_list[[5]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[6]`
+```{r}
+DT::datatable(org_ads_list[[6]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[7]`
+```{r}
+DT::datatable(org_ads_list[[7]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[8]`
+```{r}
+DT::datatable(org_ads_list[[8]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[9]`
+```{r}
+DT::datatable(org_ads_list[[9]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+## `r top_10_spenders[10]`
+```{r}
+DT::datatable(org_ads_list[[10]], options = list(scrollX = TRUE, pageLength = 5), escape = FALSE)
+```
+
