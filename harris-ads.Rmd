@@ -34,17 +34,11 @@ us_ads_summary <- us_ads %>%
 
 ```
 
-# Introduction
-
-I began this side project with the goal of collecting data from Snapchat and comparing the differences in spending between the Harris and Trump campaigns. However, to my surprise, I found that the Trump campaign was not spending ANY money on political advertisements on Snapchat. This may suggest a number of things about the Trump campaign's strategy, such as...
-
-1) Targeting Gen Z and Millenials is likely not a key part of its strategy considering the [demographics](https://www.emarketer.com/insights/snapchat-user-statistics/) of its user base skews younger. 
-
-2) There may be another platform that has proven to be more effective for them in reaching younger voters. In this project, I will only be looking at Snapchat data, but I may do a comparison of the different platforms to see which one gets candidates more bang for their buck.
 
 ```{r harris data prep}
 
 #now limiting the dataset to just the advertisements that are pro-Harris
+
 harris_ads <- us_ads %>%
   filter(str_detect(candidate_ballot_information, "Harris"))
 
@@ -85,8 +79,6 @@ names(harris_ads_list) <- harris_advertisers
 
 # Harris - Official Campaign Spending
 
-As of October 1, the official Harris campaign has spent a total of $3,328,757. 
-
 ```{r}
 harris_ads_official <- harris_ads %>%
   filter(paying_advertiser_name == "Harris for President") %>%
@@ -112,8 +104,8 @@ daily_spending <- harris_ads_expanded %>%
 
 # Load the scales package for comma formatting
 p <- ggplot(daily_spending, aes(x = date_range, y = total_daily_spend)) +
-  geom_line(color = "#154fd7", size = 1.2) +
-  geom_point(color = "#154fd7", 
+  geom_line(color = "blue", size = 1.2) +
+  geom_point(color = "blue", 
              aes(text = paste("Date: ", date_range, "<br>Daily Spend: $", comma(round(total_daily_spend)))), 
              size = 1.7) +
   labs(title = "Harris for President - Daily Ad Spending",
@@ -123,7 +115,7 @@ p <- ggplot(daily_spending, aes(x = date_range, y = total_daily_spend)) +
   theme_minimal() %>%
   theme(
     text = element_text(family = "Futura", size = 14, color = "black"),  # Set general text font
-    plot.title = element_text(family = "Futura", size = 20, color = "#154fd7"),  # Set title font
+    plot.title = element_text(family = "Futura", size = 20, color = "blue"),  # Set title font
     axis.title.x = element_text(family = "Futura", size = 16, color = "black"),  # Set x-axis label font
     axis.title.y = element_text(family = "Futura", size = 16, color = "black")   # Set y-axis label font
   )

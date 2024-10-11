@@ -108,3 +108,14 @@ ggplotly(p, tooltip = "text")
 # 
 # # Step 3: Display the map
 # map_plot
+
+# aug_30_ads <- harris_ads %>%
+#   filter(as.Date(start_date) == as.Date("2024-09-10"))
+
+# test <- harris_ads_official %>%
+#   select(regions_included, regions_excluded, postal_codes_included, postal_codes_excluded) %>%
+#   filter(!is.na(regions_included))
+# 
+# test <- harris_ads_official %>%
+#   select(regions_included, regions_excluded, postal_codes_included, postal_codes_excluded) %>%
+#   filter(!is.na(postal_codes_included))
