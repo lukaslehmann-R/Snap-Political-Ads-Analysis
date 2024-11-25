@@ -137,8 +137,10 @@ library(purrr)
 #switch body font to avenir
 #Tahoma bold for headings
 
-snap_political_ads <- read_csv("data/PoliticalAds(5)/PoliticalAds.csv") %>%
+snap_political_ads <- read_csv("data/PoliticalAds(9)/PoliticalAds.csv") %>%
   clean_names()
+
+sum(snap_political_ads$spend)
 
 # systemfonts::system_fonts() |> View()
 
@@ -148,7 +150,7 @@ snap_political_ads <- read_csv("data/PoliticalAds(5)/PoliticalAds.csv") %>%
 
 <br>
 
-Polling data and past electoral performances can tell you a lot about how a *may* choose to allocate its resources, but there are many paths to victory and internal decision-makers likely have additional information the public doesn't. To truly deduce a campaign's strategy, we must look at its actions. That means taking note of its messaging, the stops the candidate makes on the trail, and how it spends its money. In this case, I'll be analyzing how it spends its advertising budget.
+Polling data and past electoral performances can tell you a lot about how a *may* choose to allocate its resources, but there are many paths to victory and internal decision-makers have additional information the public doesn't. To truly deduce a campaign's strategy, we must look at its actions. That means taking note of its messaging, the stops the candidate makes on the trail, and how it spends its money. In this case, I'll be analyzing how the Kamala Harris campaign spent its advertising budget, specifically on Snapchat.
 
 ```{r echo=FALSE, fig.show="hold", out.width="40%"}
 
@@ -174,6 +176,8 @@ us_ads_summary <- us_ads %>%
 I began this side project with the goal of collecting data from Snapchat and comparing the differences in spending between the Harris and Trump campaigns. However, to my surprise, I found that the Trump campaign was not spending ANY money on political advertisements on Snapchat. This may suggest a number of things about the Trump campaign's strategy, such as...
 
 1) Targeting Gen Z and Millenials is likely not a key part of its strategy considering the [demographics](https://www.emarketer.com/insights/snapchat-user-statistics/) of its user base skews younger. 
+
+OR perhaps more likely...
 
 2) There may be another platform that has proven to be more effective for them in reaching younger voters. In this project, I will only be looking at Snapchat data, but I may do a comparison of the different platforms to see which one gets candidates more bang for their buck.
 
@@ -228,9 +232,11 @@ names(harris_ads_list) <- harris_advertisers
 
 <br>
 
-As of October 1, the official Harris campaign has spent a total of $4,464,234. Looking at the daily spending chart, we can see four distinct peaks: 1) Aug 30-31, 2) Sept 10-11, 3) Oct 1-2, and 4) Oct 14-15. Some of these spikes in spending coincide with major campaign events - suggesting that the campaign is likely trying to utilize the extra attention on the campaign to get some messages across to younger voters.
+Over the course of the campaign, the official Harris campaign spent a total of $33,307,846. Looking at the daily spending chart, we can see five distinct peaks: 1) Aug 30-31, 2) Sept 10-11, 3) Oct 1-2, 4) Oct 14-15, and 5) Nov 2-3. Some of these spikes in spending coincide with major campaign events - suggesting that the campaign is likely trying to utilize the extra attention on the campaign to get some messages across to younger voters.
 
-September 10 was the first Presidential Debate between Kamala Harris and Donald Trump, October 1 was the Vice Presidential Debate between Tim Walz and J.D. Vance, and October 16 (shortly after the most recent spike) was right before a major interview with Fox News host, Bret Baier. The ad placed right before the presidential debate contained Trump's mugshot contrasted with a photo of Harris reminding potential voters of her past career as a prosecutor. The ad placed before the vice presidential debate featured Tim Walz asking viewers to research Project 2025 and highlighted pieces of it the campaign believes viewers would find unappealing. 
+September 10 was the first Presidential Debate between Kamala Harris and Donald Trump, October 1 was the Vice Presidential Debate between Tim Walz and J.D. Vance, and October 16 was right before a major interview with Fox News host, Bret Baier. The final spike occurred likely as a last minute push before Election Day.
+
+The ad placed right before the presidential debate contained Trump's mugshot contrasted with a photo of Harris reminding potential voters of her past career as a prosecutor. The ad placed before the vice presidential debate featured Tim Walz asking viewers to research Project 2025 and highlighted pieces of it the campaign believes viewers would find unappealing. 
 
 <br>
 
@@ -291,7 +297,7 @@ ggplotly(p, tooltip = "text")
 
 <br>
 
-The ads launched on those dates can be found below and are in the order in which they were run. Clicking on them will lead to the Snapchat pages where the ad videos can be watched.
+The ads launched on those dates can be found below and are in the order in which they were run. Clicking on them will lead to the Snapchat pages where the ad videos could previously be watched. It's unclear if this will be possible again in the future.
 
 <br>
 
@@ -524,9 +530,9 @@ options(scipen = 999)
 
 <br>
 
-It should come as no surprise that the Harris campaign is heavily targeting the swing states that most polls and media focus on, like this article from [NPR](https://www.npr.org/2024/10/15/nx-s1-5153420/swing-state-map-donald-trump-kamala-harris-polls). However, New Hampshire is usually excluded from that sort of coverage, so it was surprising to see it at the number eight spot. Despite polling being relatively close to the [2020 outcome](https://www.politico.com/2020-election/results/new-hampshire/), the Harris campaign has has decided that it's worth spending $138k to mobilize young voters in the state. For context, Biden won the state in 2020 with around 53% of the vote to Trump's 45%. 
+It should come as no surprise that the Harris campaign was heavily targeting the swing states that most polls and media focus on, like this article from [NPR](https://www.npr.org/2024/10/15/nx-s1-5153420/swing-state-map-donald-trump-kamala-harris-polls). However, New Hampshire is usually excluded from that sort of coverage, so it was surprising to see it at the number eight spot. Despite polling being relatively close to the [2020 outcome](https://www.politico.com/2020-election/results/new-hampshire/), the Harris campaign decided that it was worth spending $150k to mobilize young voters in the state. For context, Biden won the state in 2020 with around 53% of the vote to Trump's 45%. 
 
-Biden also won Nebrask's 2nd district in 2020 with [similar margins](https://www.politico.com/2020-election/results/nebraska/) and it appears the Harris campaign allocated $34k to ensuring they carry the district's electoral vote as well.
+Biden also won Nebraska's 2nd district in 2020 with [similar margins](https://www.politico.com/2020-election/results/nebraska/) and it appears the Harris campaign allocated $58k to ensuring they carry the district's electoral vote as well.
 
 <br>
 
@@ -607,7 +613,7 @@ plotly_chart
 
 <br>
 
-From this map, we can get a better idea of which parts of the swing states the Harris campaign is most interested in reaching. Just from a glance, we can see heavy clustering around urban centers of Pennsylvania, Nevada, and Michigan as well as the suburban areas around them. This is in stark contrast to Arizona, Wisconsin, Georgia, North Carolina, and New Hampshire where the targeting based on zipcodes is far more dispersed. 
+From this map, we can get a better idea of which parts of the swing states the Harris campaign is most interested in reaching. Just from a glance, we can see heavy clustering around urban centers of Pennsylvania, Nevada, and Michigan as well as the suburban areas around them. This is in stark contrast to Arizona, Wisconsin, Georgia, North Carolina, and New Hampshire where the targeting based on zipcode is far more dispersed. 
 
 <br>
 
@@ -703,7 +709,7 @@ leaflet(zip_targeting_geo) %>%
 
 # Content Comparison
 
-Aside from the "General/Other" category, the ad categories the Harris campaign has spent the most amount of money on so far are "Attack", "Reproductive", and "Personal". Attack ads are those which focused on negative aspects of Trump or his campaign. Ads in the "Reproductive" category are those which had anything to do with abortion, IVF, or anything else related to reproductive issues. This category had quite a bit of overlap with Project 2025 ads, as many mentioned both. Ads in the "Personal" category focused on the positive aspects of Kamala Harris as a person or were stories about her life or career.
+Aside from the "General/Other" category, the ad categories the Harris campaign has spent the most amount of money on so far are "Attack", "Reproductive", and "Personal". Attack ads are those which focused on negative aspects of Trump or his campaign. Ads in the "Reproductive" category are those which focused on abortion, IVF, or anything else related to reproductive issues. This category had quite a bit of overlap with Project 2025 ads, as many mentioned both. Ads in the "Personal" category focused on the positive aspects of Kamala Harris as a person or were stories about her life or career.
 
 <br>
 
@@ -837,7 +843,11 @@ fig
 
 <br>
 
-After plotting these ads we can gather a few insights. Ads about reproductive issues, healthcare, Project 2025, and personal stories (about Harris) all follow roughly the same pattern - hitting all the major swing states. Immigration ads are essentially nonexistent in the more northern states of Wisconsin, Michigan, and Pennsylvania. However, the campaign is running them quite a bit in Arizona and Nevada. Tax-related ads follow a similar pattern but were also heavily run in North Carolina. The ads identified as being about foreign policy were only run in one geographical area - the Detroit metro area. Finally, ads claiming Trump stoked hate against Asian minorities during the pandemic were run in a handful of zipcodes in North Carolina, Georgia, and the Philadelphia suburbs.
+After plotting these ads we can gather a few insights. Ads about reproductive issues, healthcare, Project 2025, and personal stories (about Harris) all follow roughly the same pattern - hitting all the major swing states. Immigration ads are essentially nonexistent in the more northern states of Wisconsin, Michigan, and Pennsylvania. The campaign ran them in Arizona and Nevada, although spending was miniscule ($3k). Tax-related ads follow a similar pattern but were also frequently run in North Carolina. 
+
+The ads identified as being about foreign policy were only run in one geographical area - the Detroit metro area (around Dearborn). This targeting may suggest there was an effort to reach Muslim voters with messages addressing foreign policy concerns in the key swing state of Michigan. However, in total, only $5k was spent on that category. Finally, ads claiming Trump stoked hate against Asian minorities during the pandemic were run in a handful of zipcodes in North Carolina, Georgia, and the Philadelphia suburbs.
+
+IMPORTANT NOTE: An attempt was made to scale the opacity of the dots according to spend, but this was done with a logarithmic transformation so as to make sure they were all still visible. Please keep this in mind when examining a category like immigration which had a spend of only 3k compared to reproductive which had a spend of 604k.
 
 ```{r reproductive, out.width="100%", fig.height=4.5}
 topics_targeting <- zip_targeted_harris_long %>%
