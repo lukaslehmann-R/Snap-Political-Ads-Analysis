@@ -1,0 +1,1608 @@
+---
+title: "Snapchat Political Ads Analysis"
+author: "Lukas Lehmann"
+date: "2024-09-27"
+output:
+  html_document:
+    toc: true                # Enable Table of Contents
+    toc_float:               # Enable floating Table of Contents
+      collapsed: true       # Expanded by default
+      smooth_scroll: true    # Enable smooth scrolling
+    toc_depth: 3             # Include headers up to level 3 in the ToC
+    df_print: paged          # Paginate data frames
+    number_sections: false   # No section numbering
+    highlight: tango         # Code syntax highlighting
+    self_contained: true     # Embed all resources
+---
+
+<style>
+    /* General Page Styling */
+    body {
+        background-color: black;
+        color: white;
+        font-family: 'Avenir', sans-serif; /* Avenir font for body text */
+    }
+
+    /* Heading Styling */
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Tahoma', sans-serif;  /* Tahoma for headings */
+        font-weight: bold;  /* Bold text for all headings */
+        color: white;  /* Keep heading text white */
+    }
+
+    /* Floating Table of Contents Styling */
+    .tocify {
+        background-color: black !important;  /* Black background */
+        border: 2px solid white;  /* White trim around the ToC */
+        padding: 10px;
+        border-radius: 5px;
+        color: white;  /* Ensure text inside ToC is white */
+    }
+
+    /* Ensure the ToC links are styled */
+    .tocify .tocify-item {
+        color: white !important;  /* White text for ToC links */
+        background: black;
+        text-decoration: none;  /* No underline on links */
+        transition: all 250ms ease-out;
+    }
+
+    /* Hover effect for ToC links */
+    .tocify .tocify-item:hover {
+        color: white !important;  /* Blue color on hover */
+        background-color: #154fd7;  /* Slightly lighter background on hover */
+        border-radius: 3px;
+    }
+
+    /* Active/Focused ToC link styling */
+    .tocify .tocify-item.tocify-focus {
+        color: #154fd7 !important;  /* Blue color for the active section */
+        background-color: rgba(255, 255, 255, 0.2);  /* Slightly lighter background */
+        border-radius: 3px;
+    }
+
+    /* Keep visited links white */
+    .tocify .tocify-item:visited {
+        color: white !important;
+    }
+    
+    /* Set the DataTable background and text color */
+    table.dataTable {
+        background-color: #333333;  /* Dark grey background */
+        color: white;  /* White text */
+    }
+
+    /* Set the header text to white */
+    table.dataTable thead th {
+        background-color: #444444; /* Slightly darker grey for headers */
+        color: white; /* White header text */
+    }
+
+    /* Set the body text to white */
+    table.dataTable tbody td {
+        color: white;  /* White text in table body */
+    }
+
+    /* Customize hover color for rows */
+    table.dataTable tbody tr:hover {
+        background-color: #555555;  /* Lighter grey on hover */
+    }
+
+    /* Set pagination buttons to white */
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        color: white !important;  /* White pagination text */
+        background-color: #333333 !important;  /* Dark grey pagination background */
+    }
+
+    /* Pagination button hover effect */
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background-color: #444444 !important;  /* Lighter grey on hover */
+        color: white !important;
+    }
+
+    /* Adjust search box and info text to be white */
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_info {
+        color: white;
+        background-color: #333333;
+    }
+
+    /* Adjust search box border color */
+    .dataTables_wrapper .dataTables_filter input {
+        border: 1px solid #555555;
+    }
+</style>
+
+
+
+<div id="main-content">
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+library(janitor)
+library(plotly)
+library(scales)
+library(knitr)
+library(ggthemes)
+library(zipcodeR)
+library(leaflet)
+library(maps)  # To get state boundaries
+library(purrr)
+
+#switch body font to avenir
+#Tahoma bold for headings
+
+snap_political_ads <- read_csv("data/PoliticalAds(5)/PoliticalAds.csv") %>%
+  clean_names()
+
+# systemfonts::system_fonts() |> View()
+
+```
+
+# Deducing Strategy from Data
+
+<br>
+
+Polling data and past electoral performances can tell you a lot about how a *may* choose to allocate its resources, but there are many paths to victory and internal decision-makers likely have additional information the public doesn't. To truly deduce a campaign's strategy, we must look at its actions. That means taking note of its messaging, the stops the candidate makes on the trail, and how it spends its money. In this case, I'll be analyzing how it spends its advertising budget.
+
+```{r echo=FALSE, fig.show="hold", out.width="40%"}
+
+knitr::include_graphics("images/snap2.png")
+knitr::include_graphics("images/harris logo.jpg")
+
+```
+
+
+```{r limiting to USA}
+us_ads <- snap_political_ads %>%
+  filter(country_code == "united states")
+  
+us_ads_summary <- us_ads %>%
+  group_by(paying_advertiser_name) %>%
+  summarize(total_impressions = sum(impressions),
+            total_spend = sum(spend)) %>%
+  arrange(desc(total_spend))
+
+```
+
+
+I began this side project with the goal of collecting data from Snapchat and comparing the differences in spending between the Harris and Trump campaigns. However, to my surprise, I found that the Trump campaign was not spending ANY money on political advertisements on Snapchat. This may suggest a number of things about the Trump campaign's strategy, such as...
+
+1) Targeting Gen Z and Millenials is likely not a key part of its strategy considering the [demographics](https://www.emarketer.com/insights/snapchat-user-statistics/) of its user base skews younger. 
+
+2) There may be another platform that has proven to be more effective for them in reaching younger voters. In this project, I will only be looking at Snapchat data, but I may do a comparison of the different platforms to see which one gets candidates more bang for their buck.
+
+Without further ado, let's jump in!
+
+<br>
+
+```{r harris data prep}
+
+#now limiting the dataset to just the advertisements that are pro-Harris
+harris_ads <- us_ads %>%
+  filter(str_detect(candidate_ballot_information, "Harris"))
+
+harris_ads_summary <- harris_ads %>%
+  group_by(paying_advertiser_name) %>%
+  summarize(total_impressions = sum(impressions),
+            total_spend = sum(spend)) %>%
+  arrange(desc(total_spend))
+
+# Extract top 7 advertisers based on total spending from harris_ads_summary
+harris_advertisers <- head(harris_ads_summary$paying_advertiser_name, 7)
+
+# Create individual variables for the top 7 organizations
+organization_1 <- harris_advertisers[1]
+organization_2 <- harris_advertisers[2]
+organization_3 <- harris_advertisers[3]
+organization_4 <- harris_advertisers[4]
+organization_5 <- harris_advertisers[5]
+organization_6 <- harris_advertisers[6]
+organization_7 <- harris_advertisers[7]
+
+# Create a list of filtered tables for the top 7 spenders
+harris_ads_list <- lapply(harris_advertisers, function(advertiser_name) {
+  us_ads %>%
+    mutate(impressions_per_dollar = impressions/spend) %>%
+    filter(paying_advertiser_name == advertiser_name) %>%
+    select(paying_advertiser_name, spend, impressions, 
+           candidate_ballot_information, creative_url,
+           start_date, end_date) %>%
+    # Convert creative_url to clickable links
+    mutate(creative_url = paste0("<a href='", creative_url, "' target='_blank'>Link</a>"))
+})
+
+# Name the list elements for easier reference
+names(harris_ads_list) <- harris_advertisers
+
+#sum(harris_ads_official$spend)
+
+```
+
+# Daily Spending
+
+<br>
+
+As of October 1, the official Harris campaign has spent a total of $4,464,234. Looking at the daily spending chart, we can see four distinct peaks: 1) Aug 30-31, 2) Sept 10-11, 3) Oct 1-2, and 4) Oct 14-15. Some of these spikes in spending coincide with major campaign events - suggesting that the campaign is likely trying to utilize the extra attention on the campaign to get some messages across to younger voters.
+
+September 10 was the first Presidential Debate between Kamala Harris and Donald Trump, October 1 was the Vice Presidential Debate between Tim Walz and J.D. Vance, and October 16 (shortly after the most recent spike) was right before a major interview with Fox News host, Bret Baier. The ad placed right before the presidential debate contained Trump's mugshot contrasted with a photo of Harris reminding potential voters of her past career as a prosecutor. The ad placed before the vice presidential debate featured Tim Walz asking viewers to research Project 2025 and highlighted pieces of it the campaign believes viewers would find unappealing. 
+
+<br>
+
+```{r daily_spending, out.width="100%", fig.height=4}
+harris_ads_official <- harris_ads %>%
+  filter(paying_advertiser_name == "Harris for President") %>%
+  mutate(start_date = as.Date(ymd_hms(start_date)),
+         end_date = as.Date(ymd_hms(end_date)))
+
+# Create a sequence of dates for each ad
+harris_ads_expanded <- harris_ads_official %>%
+  # Generate a sequence of dates from start_date to end_date
+  mutate(date_range = purrr::map2(start_date, end_date, seq, by = "day")) %>%
+  # Expand rows so that each date in date_range has its own row
+  unnest(date_range) %>%
+  # Step 2: Calculate daily spend for each ad
+  group_by(adid) %>%
+  mutate(daily_spend = spend / n()) %>%
+  ungroup()
+
+# Summarize daily spend across all ads
+daily_spending <- harris_ads_expanded %>%
+  group_by(date_range) %>%
+  summarize(total_daily_spend = sum(daily_spend)) %>%
+  arrange(date_range)
+
+# Load the scales package for comma formatting
+p <- ggplot(daily_spending, aes(x = date_range, y = total_daily_spend)) +
+  geom_line(color = "#154fd7", size = 1.2) +  # Use the same gradient endpoint color for the line
+  geom_point(aes(text = paste("Date: ", date_range, "<br>Daily Spend: $", comma(round(total_daily_spend)))),
+             size = 1.7, color = "#154fd7") +  # Use the gradient start color for the points
+  labs(title = "Harris for President - Daily Ad Spending",
+       x = "Date",
+       y = "Total Spending ($)") +
+  scale_y_continuous(labels = comma) +  # Format y-axis labels with commas
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "#333333", color = NA),  # Dark grey background (matches bar chart)
+    plot.background = element_rect(fill = "#333333", color = NA),  # Dark grey plot background
+    text = element_text(family = "Futura", color = "white"),  # White text with Futura font
+    plot.title = element_text(family = "Futura", size = 16, face = "bold", color = "white"),  # White title
+    axis.title.x = element_text(face = "bold", color = "white"),  # White x-axis title
+    axis.title.y = element_text(face = "bold", color = "white"),  # White y-axis title
+    axis.text.x = element_text(color = "white", angle = 45, hjust = 1, size = 10, face = "bold"),  # White x-axis labels
+    axis.text.y = element_text(color = "white", size = 10, face = "bold"),  # White y-axis labels
+    panel.grid.major = element_line(color = "#555555"),  # Slightly lighter grid lines
+    panel.grid.minor = element_line(color = "#555555")   # Slightly lighter minor grid lines
+  )
+
+# Convert to interactive plotly with tooltip showing text from geom_point()
+ggplotly(p, tooltip = "text")
+
+```
+
+<br>
+
+## Big Budget Ads
+
+<br>
+
+The ads launched on those dates can be found below and are in the order in which they were run. Clicking on them will lead to the Snapchat pages where the ad videos can be watched.
+
+<br>
+
+<div style="display: flex; justify-content: space-around;">
+  <a href="https://www.snap.com/political-ads/asset/a9b3d777ece1fc3e9da7eb427d06593bb616f91a2d4cfa7e5cd07fa006ffa866?mediaType=mp4" target="_blank">
+    <img src="images/8-30 ad.png" alt="8-30 ad" style="width:100%">
+  </a>
+
+  <a href="https://www.snap.com/political-ads/asset/1f5a8171137ec4b56f688b19815a48a4b5e9c7e98be8d001848ad7108227a948?mediaType=mp4" target="_blank">
+    <img src="images/9-10 ad.png" alt="9-10 ad" style="width:100%">
+  </a>
+
+  <a href="https://www.snap.com/political-ads/asset/105dc45dd9ec35b1dea8827882256a00f70cc61e054ac00fd083ed3aaf1ed739?mediaType=mp4" target="_blank">
+    <img src="images/10-1 ad.png" alt="10-1 ad" style="width:100%">
+  </a>
+
+  <a href="https://www.snap.com/political-ads/asset/d56ca919c3036ea9e5e2b507280666b70fa4d6803d76137857624dbb7c0550b3?mediaType=mp4" target="_blank">
+    <img src="images/10-14 ad.png" alt="10-14 ad" style="width:100%">
+  </a>
+</div>
+
+<br>
+<br>
+
+# Pro-Harris Advertisers {.tabset}
+
+<br>
+
+While Harris for President is the only official advertiser from the Harris campaign, a number of other accounts have been running ads with Kamala Harris listed as the candidate involved. Ads from the top advertisers determined by total amount spent can be found below. The last two seem to be dedicated only to selling merchandise related to the election.
+
+<br>
+
+## `r harris_advertisers[1]`
+```{r}
+DT::datatable(
+  harris_ads_list[[1]], 
+  options = list(
+    scrollX = TRUE,     # Horizontal scrolling for wide tables
+    scrollY = "400px",  # Set vertical scroll to 400px, similar to fig.height
+    pageLength = 5,     # Set the number of rows per page
+    autoWidth = TRUE    # Automatically adjust the width to fit the container
+  ),
+  escape = FALSE
+)
+```
+## `r harris_advertisers[2]`
+```{r}
+DT::datatable(
+  harris_ads_list[[2]], 
+  options = list(
+    scrollX = TRUE,     
+    scrollY = "400px",  
+    pageLength = 5,     
+    autoWidth = TRUE    
+  ),
+  escape = FALSE
+)
+```
+## `r harris_advertisers[3]`
+```{r}
+DT::datatable(
+  harris_ads_list[[3]], 
+  options = list(
+    scrollX = TRUE,     
+    scrollY = "400px",  
+    pageLength = 5,     
+    autoWidth = TRUE    
+  ),
+  escape = FALSE
+)
+```
+## `r harris_advertisers[4]`
+```{r}
+DT::datatable(
+  harris_ads_list[[4]], 
+  options = list(
+    scrollX = TRUE,     
+    scrollY = "400px",  
+    pageLength = 5,     
+    autoWidth = TRUE    
+  ),
+  escape = FALSE
+)
+```
+## `r harris_advertisers[5]`
+```{r}
+DT::datatable(
+  harris_ads_list[[5]], 
+  options = list(
+    scrollX = TRUE,     
+    scrollY = "400px",  
+    pageLength = 5,     
+    autoWidth = TRUE    
+  ),
+  escape = FALSE
+)
+```
+## `r harris_advertisers[6]`
+```{r}
+DT::datatable(
+  harris_ads_list[[6]], 
+  options = list(
+    scrollX = TRUE,     
+    scrollY = "400px",  
+    pageLength = 5,     
+    autoWidth = TRUE    
+  ),
+  escape = FALSE
+)
+```
+## `r harris_advertisers[7]`
+```{r}
+DT::datatable(
+  harris_ads_list[[7]], 
+  options = list(
+    scrollX = TRUE,     
+    scrollY = "400px",  
+    pageLength = 5,     
+    autoWidth = TRUE    
+  ),
+  escape = FALSE
+)
+```
+
+```{r spending_by_state, out.width="100%", fig.height=4}
+
+state_targeted_harris <- harris_ads_official %>%
+  filter(!is.na(regions_included)) %>%
+  mutate(region_count = str_count(regions_included, ",") + 1,
+         spend_on_state = spend/region_count)
+
+# Pivot the data longer so each region has its own row
+state_targeted_harris_long <- state_targeted_harris %>%
+  separate_rows(regions_included, sep = ",") %>%
+  mutate(regions_included = str_trim(regions_included))  # Remove any leading or trailing whitespace
+
+states_harris_sum <- state_targeted_harris_long %>%
+  group_by(regions_included) %>%
+  summarize(state_spend_total = sum(spend_on_state))
+
+options(scipen = 999)
+
+# # Create a ggplot bar chart with custom text in the tooltip
+# a <- ggplot(states_harris_sum, aes(x = reorder(regions_included, -state_spend_total), 
+#                                    y = state_spend_total, 
+#                                    text = paste("State: ", regions_included,
+#                                                 "<br>Total Spend: $", comma(state_spend_total)))) +
+#   geom_bar(stat = "identity", aes(fill = state_spend_total)) +  # Use fill to apply color gradient
+#   labs(title = "Total Spend by State",
+#        x = "State",
+#        y = "Total Spend ($)") +
+#   scale_fill_gradient(low = "#80FFDB", high = "#7400B8") +  # Custom color gradient
+#   theme_minimal() +
+#   theme(
+#     panel.background = element_rect(fill = "#333333", color = NA),  # Dark grey background
+#     plot.background = element_rect(fill = "#333333", color = NA),  # Dark grey background
+#     text = element_text(family = "Futura", color = "white"),  # White text and Futura font
+#     axis.text.x = element_text(angle = 45, hjust = 1, size = 10, face = "bold", color = "white"),  # White axis text
+#     axis.text.y = element_text(angle = 45, hjust = 1, size = 10, face = "bold", color = "white"),
+#     axis.title.x = element_text(face = "bold", color = "white"),
+#     axis.title.y = element_text(face = "bold", color = "white"),
+#     plot.title = element_text(size = 16, face = "bold", color = "white")
+#   )
+# 
+# # Convert to interactive plotly object with custom tooltip
+# ggplotly(a, tooltip = "text")
+
+```
+
+```{r zip_data, out.width="100%", fig.height=4}
+
+zip_targeted_harris <- harris_ads_official %>%
+  filter(!is.na(postal_codes_included)) %>%
+  mutate(zip_count = str_count(postal_codes_included, ",") + 1,
+         spend_on_zip = spend/zip_count)
+
+# # Pivot the data longer so each region has its own row
+# zip_targeted_harris_long <- zip_targeted_harris %>%
+#   separate_rows(postal_codes_included, sep = ",") %>%
+#   mutate(postal_codes_included = str_trim(postal_codes_included)) %>%
+#   rowwise() %>%  # Apply reverse_zipcode to each row
+#   mutate(state = reverse_zipcode(postal_codes_included)$state) %>%
+#   ungroup()  # Ungroup after rowwise operation
+# 
+# write_csv(zip_targeted_harris_long, "zip_targeted_harris_long.csv")
+
+zip_targeted_harris_long <- read_csv("zip_targeted_harris_long.csv")
+
+# Create a named vector to map state abbreviations to full names
+state_full_names <- setNames(state.name, state.abb)
+
+zip_harris_sum <- zip_targeted_harris_long %>%
+  group_by(state) %>%
+  summarize(zip_spend_total = sum(spend_on_zip)) %>%
+  mutate(state = state_full_names[state])
+
+options(scipen = 999)
+
+# # Create a ggplot bar chart with custom text in the tooltip
+# b <- ggplot(zip_harris_sum, aes(x = reorder(state, -zip_spend_total),
+#                                    y = zip_spend_total,
+#                                    text = paste("State: ", state,
+#                                                 "<br>Total Spend: $", comma(zip_spend_total)))) +
+#   geom_bar(stat = "identity", fill = "#154fd7") +  # Use blue fill for the bars
+#   labs(title = "Total Spend by Zip",
+#        x = "State",
+#        y = "Total Spend ($)") +
+#   theme_minimal() +
+#   theme(
+#     panel.background = element_rect(fill = "#333333", color = NA),  # Dark grey background
+#     plot.background = element_rect(fill = "#333333", color = NA),  # Dark grey plot background
+#     text = element_text(family = "Futura", color = "white"),  # White text with Futura font
+#     plot.title = element_text(size = 16, face = "bold", color = "white"),  # White title text
+#     axis.title.x = element_text(face = "bold", color = "white"),  # White x-axis label
+#     axis.title.y = element_text(face = "bold", color = "white"),  # White y-axis label
+#     axis.text.x = element_text(angle = 45, hjust = 1, size = 10, face = "bold", color = "white"),  # White x-axis tick labels
+#     axis.text.y = element_text(size = 10, face = "bold", color = "white"),  # White y-axis tick labels
+#     panel.grid.major = element_line(color = "#555555"),  # Lighter grey grid lines
+#     panel.grid.minor = element_line(color = "#555555")   # Lighter grey minor grid lines
+#   )
+# 
+# # Convert to interactive plotly object with custom tooltip
+# ggplotly(b, tooltip = "text")
+
+```
+
+<br>
+
+# Spending by State
+
+<br>
+
+It should come as no surprise that the Harris campaign is heavily targeting the swing states that most polls and media focus on, like this article from [NPR](https://www.npr.org/2024/10/15/nx-s1-5153420/swing-state-map-donald-trump-kamala-harris-polls). However, New Hampshire is usually excluded from that sort of coverage, so it was surprising to see it at the number eight spot. Despite polling being relatively close to the [2020 outcome](https://www.politico.com/2020-election/results/new-hampshire/), the Harris campaign has has decided that it's worth spending $138k to mobilize young voters in the state. For context, Biden won the state in 2020 with around 53% of the vote to Trump's 45%. 
+
+Biden also won Nebrask's 2nd district in 2020 with [similar margins](https://www.politico.com/2020-election/results/nebraska/) and it appears the Harris campaign allocated $34k to ensuring they carry the district's electoral vote as well.
+
+<br>
+
+```{r state and zip, out.width="100%", fig.height=4}
+
+# Step 1: Rename `regions_included` to `state` in `states_harris_sum`
+states_harris_sum <- states_harris_sum %>%
+  rename(state = regions_included)
+
+# Step 2: Perform a full join on the `state` column
+combined_harris_sum <- full_join(states_harris_sum, zip_harris_sum, by = "state") %>%
+  mutate(across(c(state_spend_total, zip_spend_total), ~ replace_na(., 0)))
+
+# Step 1: Prepare the data with four columns
+combined_harris_sum <- combined_harris_sum %>%
+  mutate(
+    zip_spend = zip_spend_total,
+    untargeted_state_spend = state_spend_total,
+    total_state_spend = zip_spend_total + state_spend_total
+  ) %>%
+  select(state, zip_spend, untargeted_state_spend, total_state_spend)
+
+# Step 2: Calculate the order of states based on total_state_spend before pivoting
+combined_harris_sum <- combined_harris_sum %>%
+  arrange(desc(total_state_spend)) %>%
+  mutate(state = factor(state, levels = unique(state)))  # Set factor levels for correct ordering
+
+
+# Step 3: Pivot the data longer for plotting with updated names
+combined_harris_sum_long <- combined_harris_sum %>%
+  pivot_longer(cols = c(zip_spend, untargeted_state_spend, total_state_spend),
+               names_to = "spend_type",
+               values_to = "total_spend") %>%
+  mutate(spend_type = factor(spend_type, levels = c("total_state_spend", "untargeted_state_spend", "zip_spend"),
+                             labels = c("Total", "Untargeted", "Zipcode-specific")))
+
+
+# Step 4: Create a plotly bar chart with the correct ordering and legend title
+c <- ggplot(combined_harris_sum_long, aes(x = state, y = total_spend, fill = spend_type,
+                                          text = paste("State: ", state,
+                                                       "<br>Spend Type: ", spend_type,
+                                                       "<br>Total Spend: $", scales::comma(total_spend)))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Total Spend by State and Spend Type",
+       x = "State",
+       y = "Total Spend ($)",
+       fill = "Spend Category") +  # Custom legend title
+  scale_fill_manual(values = c("#154fd7", "#80FFDB", "white"), 
+                    labels = c("Total", "Untargeted", "Zipcode-specific")) +  # Custom fill for the bars and legend labels
+  theme_minimal() +
+  theme(
+    panel.background = element_rect(fill = "#333333", color = NA),  # Dark grey background
+    plot.background = element_rect(fill = "#333333", color = NA),  # Dark grey plot background
+    text = element_text(family = "Avenir", color = "white"),  # White text with Futura font
+    plot.title = element_text(size = 16, face = "bold", color = "white"),  # White title text
+    axis.title.x = element_text(face = "bold", color = "white"),  # White x-axis label
+    axis.title.y = element_text(face = "bold", color = "white"),  # White y-axis label
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 10, face = "bold", color = "white"),  # White x-axis tick labels
+    axis.text.y = element_text(size = 10, face = "bold", color = "white"),  # White y-axis tick labels
+    panel.grid.major = element_line(color = "#555555"),  # Light grey grid lines
+    panel.grid.minor = element_line(color = "#555555")   # Light grey minor grid lines
+  )
+
+# Convert to interactive plotly chart
+plotly_chart <- ggplotly(c, tooltip = "text") %>%
+  layout(
+    yaxis = list(tickformat = "$,.0f")  # Format y-axis with dollar sign and commas
+  )
+
+# Display the chart
+plotly_chart
+
+```
+
+<br>
+
+# Targeted Zipcodes
+
+<br>
+
+From this map, we can get a better idea of which parts of the swing states the Harris campaign is most interested in reaching. Just from a glance, we can see heavy clustering around urban centers of Pennsylvania, Nevada, and Michigan as well as the suburban areas around them. This is in stark contrast to Arizona, Wisconsin, Georgia, North Carolina, and New Hampshire where the targeting based on zipcodes is far more dispersed. 
+
+<br>
+
+```{r zip code, out.width="100%", fig.height=4.5}
+
+zip_targeting <- zip_targeted_harris_long %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+zip_targeting <- zip_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+zip_targeting_geo <- zip_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state)  # Extract state abbreviation
+  ) %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+zip_spending <- zip_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+zip_spending$total_spending[is.na(zip_spending$total_spending)] <- 0
+
+# # Define a color palette using just the blue color #154fd7 for the markers
+# pal <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+# 
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+# 
+# # Create the leaflet map with dark tiles, blue circles, and state boundaries
+# leaflet(zip_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%  # Dark theme map tiles
+#     addPolygons(
+#     data = states, color = "white", weight = 1,  # Minimal state boundaries, only white lines
+#     fillOpacity = 0,  # No fill, just borders
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)  # Ensure polygons stay behind circles
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = 0.4,
+#     color = "#154fd7", weight = 1, radius = 15000,  # Smaller blue circles
+#     popup = ~paste("Zip Code: ", postal_codes_included, 
+#                    "<br>State: ", state, 
+#                    "<br>Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)  # Ensure popups close when clicking elsewhere
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)  # Center the map over the US with appropriate zoom
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(zip_spending$total_spending), to = c(0.2, 1))
+
+# Create the leaflet map
+leaflet(zip_targeting_geo) %>%
+  addProviderTiles("CartoDB.DarkMatter") %>%
+  addPolygons(
+    data = states, color = "white", weight = 1,
+    fillOpacity = 0, 
+    highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+  ) %>%
+  addCircles(
+    lng = ~longitude, lat = ~latitude,
+    fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+    color = "#154fd7", weight = 1, radius = 15000,  
+    popup = ~paste("Zip Code: ", postal_codes_included, 
+                   "<br>State: ", state, 
+                   "<br>Total Spending: $", scales::comma(total_spend)),
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  setView(lng = -96, lat = 37.8, zoom = 4)
+
+
+
+```
+
+<br>
+
+# Content Comparison
+
+Aside from the "General/Other" category, the ad categories the Harris campaign has spent the most amount of money on so far are "Attack", "Reproductive", and "Personal". Attack ads are those which focused on negative aspects of Trump or his campaign. Ads in the "Reproductive" category are those which had anything to do with abortion, IVF, or anything else related to reproductive issues. This category had quite a bit of overlap with Project 2025 ads, as many mentioned both. Ads in the "Personal" category focused on the positive aspects of Kamala Harris as a person or were stories about her life or career.
+
+<br>
+
+```{r content, out.width="100%", fig.height=4}
+
+creative_cat <- read_csv("snap creative.csv") %>%
+  clean_names()
+# colnames(creative_cat)
+
+creative_cat <- creative_cat %>%
+  select(creative_properties_2, n, topic) %>%
+  mutate(creative_properties = creative_properties_2) %>%
+  select(-creative_properties_2)
+
+harris_ads_categorized <- harris_ads_official %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  select(adid, creative_url, topic, spend, impressions, 
+         start_date, end_date, regions_included, 
+         regions_excluded, postal_codes_included, 
+         postal_codes_excluded, language, creative_properties, 
+         age_bracket)
+
+harris_ads_categorized_no_na <- harris_ads_categorized %>%
+  filter(!is.na(creative_properties)) 
+
+topic_sum <- harris_ads_categorized_no_na %>%
+  group_by(topic) %>%
+  summarize(count = n())
+
+topics <- c("Reproductive", "Project 2025", "Attack", 
+            "General", "Personal", "GOTV", "Economy", "Tax", 
+            "Foreign Policy", "Healthcare", "Crime",
+            "Hate", "Immigration", "Housing")
+
+# Create a dataframe with the count, total spend, and total impressions for each topic
+topic_counts <- data.frame(
+  topic = topics,
+  count = sapply(topics, function(t) {
+    sum(str_detect(harris_ads_categorized_no_na$topic, regex(t, ignore_case = TRUE)))
+  }),
+  total_spend = sapply(topics, function(t) {
+    sum(harris_ads_categorized_no_na$spend[str_detect(harris_ads_categorized_no_na$topic, regex(t, ignore_case = TRUE))], na.rm = TRUE)
+  }),
+  total_impressions = sapply(topics, function(t) {
+    sum(harris_ads_categorized_no_na$impressions[str_detect(harris_ads_categorized_no_na$topic, regex(t, ignore_case = TRUE))], na.rm = TRUE)
+  }),
+  row.names = NULL
+)
+
+# First, ensure topic is a factor with levels ordered by total_spend
+topic_counts$topic <- factor(topic_counts$topic, 
+                          levels = topic_counts$topic[order(topic_counts$total_spend, decreasing = TRUE)])
+
+# Create the plotly object with dodged bars
+fig <- plot_ly()
+
+# Add trace for total spend on the primary y-axis
+fig <- fig %>% 
+ add_trace(
+   x = ~topic_counts$topic, 
+   y = ~topic_counts$total_spend, 
+   name = "Total Spend", 
+   type = "bar", 
+   marker = list(color = '#154fd7'), 
+   yaxis = "y",
+   offset = -0.2,
+   width = 0.4
+ )
+
+# Add trace for total impressions on the secondary y-axis
+fig <- fig %>% 
+ add_trace(
+   x = ~topic_counts$topic, 
+   y = ~topic_counts$total_impressions, 
+   name = "Total Impressions", 
+   type = "bar", 
+   marker = list(color = '#80FFDB'), 
+   yaxis = "y2",
+   offset = 0.2,
+   width = 0.4
+ )
+
+# Define the secondary axis for total impressions
+ay <- list(
+ title = "<b>Total Impressions</b>",
+ overlaying = "y",
+ side = "right",
+ tickfont = list(color = "white"),
+ showgrid = FALSE,
+ titlefont = list(color = "white"),
+ standoff = 40
+)
+
+# Set the layout with titles and the secondary axis
+fig <- fig %>% layout(
+ title = "Total Spend and Impressions by Topic",
+ xaxis = list(
+   title = "Topic",
+   standoff = 20
+ ),
+ yaxis = list(
+   title = "<b>Total Spend ($)</b>", 
+   tickformat = "$,.0f", 
+   tickfont = list(color = "white"),
+   titlefont = list(color = "white"),
+   standoff = 40
+ ),
+ yaxis2 = ay,
+ barmode = "overlay",
+ bargap = 0.2,
+ plot_bgcolor = '#333333',
+ paper_bgcolor = '#333333',
+ font = list(color = "white"),
+ # Legend position is controlled here - x=1.02 brings it closer to the graph (was 1.15 before)
+ legend = list(
+   title = list(text = "Metric Type"),
+   x = 1.07,    # This controls how far right the legend is (larger number = further right)
+   y = 1,
+   xanchor = "left"
+ )
+)
+
+# Display the interactive plotly chart
+fig
+
+```
+<br>
+
+
+# Zip-Based Content Targeting
+
+<br>
+
+After plotting these ads we can gather a few insights. Ads about reproductive issues, healthcare, Project 2025, and personal stories (about Harris) all follow roughly the same pattern - hitting all the major swing states. Immigration ads are essentially nonexistent in the more northern states of Wisconsin, Michigan, and Pennsylvania. However, the campaign is running them quite a bit in Arizona and Nevada. Tax-related ads follow a similar pattern but were also heavily run in North Carolina. The ads identified as being about foreign policy were only run in one geographical area - the Detroit metro area. Finally, ads claiming Trump stoked hate against Asian minorities during the pandemic were run in a handful of zipcodes in North Carolina, Georgia, and the Philadelphia suburbs.
+
+```{r reproductive, out.width="100%", fig.height=4.5}
+topics_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties")
+
+# unique(topics_targeting$topic)
+# Add a 'reproductive' column based on the presence of the word 'reproductive' in any case
+reproductive_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  mutate(reproductive = ifelse(grepl("reproductive", topic, ignore.case = TRUE), 1, 0)) %>%
+  filter(reproductive == 1) %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+reproductive_targeting <- reproductive_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+reproductive_targeting_geo <- reproductive_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state),  # Extract state abbreviati
+  topic = "Reproductive") %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state, topic)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+reproductive_spending <- reproductive_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+reproductive_spending$total_spending[is.na(reproductive_spending$total_spending)] <- 0
+#
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(reproductive_spending$total_spending), to = c(0.2, 1))
+
+# # Create the leaflet map
+# leaflet(reproductive_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolygons(
+#     data = states, color = "white", weight = 1,
+#     fillOpacity = 0,
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+#     color = "#154fd7", weight = 1, radius = 15000,
+#     popup = ~paste("Zip Code: ", postal_codes_included,
+#                    "State: ", state,
+#                    "Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)
+
+```
+
+```{r economy, out.width="100%", fig.height=4.5}
+# unique(topics_targeting$topic)
+# Add a 'economy' column based on the presence of the word 'economy' in any case
+economy_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  mutate(economy = ifelse(grepl("economy", topic, ignore.case = TRUE), 1, 0)) %>%
+  filter(economy == 1) %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+economy_targeting <- economy_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+economy_targeting_geo <- economy_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state),  # Extract state abbreviation
+    topic = "Economy") %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state, topic)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+economy_spending <- economy_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+economy_spending$total_spending[is.na(economy_spending$total_spending)] <- 0
+#
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(economy_spending$total_spending), to = c(0.2, 1))
+
+# # Create the leaflet map
+# leaflet(economy_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolygons(
+#     data = states, color = "white", weight = 1,
+#     fillOpacity = 0,
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+#     color = "#154fd7", weight = 1, radius = 15000,
+#     popup = ~paste("Zip Code: ", postal_codes_included,
+#                    "State: ", state,
+#                    "Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)
+
+```
+
+```{r foreign_policy, out.width="100%", fig.height=4.5}
+# unique(topics_targeting$topic)
+# Add a 'foreign_policy' column based on the presence of the word 'foreign_policy' in any case
+foreign_policy_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  mutate(foreign_policy = ifelse(grepl("foreign policy", topic, ignore.case = TRUE), 1, 0)) %>%
+  filter(foreign_policy == 1) %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+foreign_policy_targeting <- foreign_policy_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+foreign_policy_targeting_geo <- foreign_policy_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state),  # Extract state abbreviation
+    topic = "Foreign Policy") %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state, topic)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+foreign_policy_spending <- foreign_policy_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+foreign_policy_spending$total_spending[is.na(foreign_policy_spending$total_spending)] <- 0
+#
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(foreign_policy_spending$total_spending), to = c(0.2, 1))
+
+# Create the leaflet map
+# leaflet(foreign_policy_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolygons(
+#     data = states, color = "white", weight = 1,
+#     fillOpacity = 0,
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+#     color = "#154fd7", weight = 1, radius = 15000,
+#     popup = ~paste("Zip Code: ", postal_codes_included,
+#                    "State: ", state,
+#                    "Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)
+
+```
+
+```{r project_2025, out.width="100%", fig.height=4.5}
+# unique(topics_targeting$topic)
+# Add a 'project_2025' column based on the presence of the word 'project_2025' in any case
+project_2025_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  mutate(project_2025 = ifelse(grepl("Project 2025", topic, ignore.case = TRUE), 1, 0)) %>%
+  filter(project_2025 == 1) %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+project_2025_targeting <- project_2025_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+project_2025_targeting_geo <- project_2025_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state),  # Extract state abbreviation
+    topic = "Project 2025") %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state, topic)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+project_2025_spending <- project_2025_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+project_2025_spending$total_spending[is.na(project_2025_spending$total_spending)] <- 0
+#
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(project_2025_spending$total_spending), to = c(0.2, 1))
+
+# # Create the leaflet map
+# leaflet(project_2025_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolygons(
+#     data = states, color = "white", weight = 1,
+#     fillOpacity = 0,
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+#     color = "#154fd7", weight = 1, radius = 15000,
+#     popup = ~paste("Zip Code: ", postal_codes_included,
+#                    "State: ", state,
+#                    "Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)
+
+```
+
+```{r healthcare, out.width="100%", fig.height=4.5}
+# unique(topics_targeting$topic)
+# Add a 'healthcare' column based on the presence of the word 'healthcare' in any case
+healthcare_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  mutate(healthcare = ifelse(grepl("Healthcare", topic, ignore.case = TRUE), 1, 0)) %>%
+  filter(healthcare == 1) %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+healthcare_targeting <- healthcare_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+healthcare_targeting_geo <- healthcare_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state)  # Extract state abbreviation
+  ) %>%
+  mutate(topic = "Healthcare") %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state, topic)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+healthcare_spending <- healthcare_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+healthcare_spending$total_spending[is.na(healthcare_spending$total_spending)] <- 0
+#
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(healthcare_spending$total_spending), to = c(0.2, 1))
+
+# Create the leaflet map
+# leaflet(healthcare_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolygons(
+#     data = states, color = "white", weight = 1,
+#     fillOpacity = 0,
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+#     color = "#154fd7", weight = 1, radius = 15000,
+#     popup = ~paste("Zip Code: ", postal_codes_included,
+#                    "State: ", state,
+#                    "Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)
+
+```
+
+```{r personal, out.width="100%", fig.height=4.5}
+# unique(topics_targeting$topic)
+# Add a 'personal' column based on the presence of the word 'personal' in any case
+personal_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  mutate(personal = ifelse(grepl("personal", topic, ignore.case = TRUE), 1, 0)) %>%
+  filter(personal == 1) %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+personal_targeting <- personal_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+personal_targeting_geo <- personal_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state)  # Extract state abbreviation
+  ) %>%
+  mutate(topic = "Personal") %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state, topic)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+personal_spending <- personal_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+personal_spending$total_spending[is.na(personal_spending$total_spending)] <- 0
+#
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(personal_spending$total_spending), to = c(0.2, 1))
+
+# # Create the leaflet map
+# leaflet(personal_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolygons(
+#     data = states, color = "white", weight = 1,
+#     fillOpacity = 0,
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+#     color = "#154fd7", weight = 1, radius = 15000,
+#     popup = ~paste("Zip Code: ", postal_codes_included,
+#                    "State: ", state,
+#                    "Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)
+
+```
+
+```{r tax, out.width="100%", fig.height=4.5}
+# unique(topics_targeting$topic)
+# Add a 'tax' column based on the presence of the word 'tax' in any case
+tax_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  mutate(tax = ifelse(grepl("tax", topic, ignore.case = TRUE), 1, 0)) %>%
+  filter(tax == 1) %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+tax_targeting <- tax_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+tax_targeting_geo <- tax_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state)  # Extract state abbreviation
+  ) %>%
+  mutate(topic = "Tax") %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state, topic)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+tax_spending <- tax_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+tax_spending$total_spending[is.na(tax_spending$total_spending)] <- 0
+#
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(tax_spending$total_spending), to = c(0.2, 1))
+
+# Create the leaflet map
+# leaflet(tax_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolygons(
+#     data = states, color = "white", weight = 1,
+#     fillOpacity = 0,
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+#     color = "#154fd7", weight = 1, radius = 15000,
+#     popup = ~paste("Zip Code: ", postal_codes_included,
+#                    "State: ", state,
+#                    "Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)
+
+```
+
+```{r hate, out.width="100%", fig.height=4.5}
+# unique(topics_targeting$topic)
+# Add a 'hate' column based on the presence of the word 'hate' in any case
+hate_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  mutate(hate = ifelse(grepl("hate", topic, ignore.case = TRUE), 1, 0)) %>%
+  filter(hate == 1) %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+hate_targeting <- hate_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+hate_targeting_geo <- hate_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state)  # Extract state abbreviation
+  ) %>%
+  mutate(topic = "Hate") %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state, topic)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+hate_spending <- hate_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+hate_spending$total_spending[is.na(hate_spending$total_spending)] <- 0
+#
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(hate_spending$total_spending), to = c(0.2, 1))
+
+# Create the leaflet map
+# leaflet(hate_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolygons(
+#     data = states, color = "white", weight = 1,
+#     fillOpacity = 0,
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+#     color = "#154fd7", weight = 1, radius = 15000,
+#     popup = ~paste("Zip Code: ", postal_codes_included,
+#                    "State: ", state,
+#                    "Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)
+
+```
+
+```{r immigration, out.width="100%", fig.height=4.5}
+
+
+# unique(topics_targeting$topic)
+# Add a 'immigration' column based on the presence of the word 'immigration' in any case
+immigration_targeting <- zip_targeted_harris_long %>%
+  left_join(creative_cat, by = "creative_properties") %>%
+  mutate(immigration = ifelse(grepl("immigration", topic, ignore.case = TRUE), 1, 0)) %>%
+  filter(immigration == 1) %>%
+  group_by(postal_codes_included) %>%
+  summarize(total_spend = sum(spend_on_zip))
+
+# Ensure zip codes are in the correct format (5-digit strings)
+immigration_targeting <- immigration_targeting %>%
+  mutate(postal_codes_included = as.character(postal_codes_included))
+
+# Step 1: Use purrr::map_dfr to get latitude, longitude, and state for each zip code
+immigration_targeting_geo <- immigration_targeting %>%
+  mutate(location_data = purrr::map(postal_codes_included, ~ reverse_zipcode(.x))) %>%
+  filter(!map_lgl(location_data, is.null)) %>%  # Remove rows with missing locations
+  mutate(
+    latitude = map_dbl(location_data, ~ .x$lat),  # Extract latitude
+    longitude = map_dbl(location_data, ~ .x$lng),  # Extract longitude
+    state = map_chr(location_data, ~ .x$state)  # Extract state abbreviation
+  ) %>%
+  mutate(topic = "Immigration") %>%
+  select(postal_codes_included, total_spend, latitude, longitude, state, topic)
+
+# Custom function to format spending values
+format_spending <- function(x) {
+  scales::dollar_format()(x)
+}
+
+# Summarize total spending by zip
+immigration_spending <- immigration_targeting_geo %>%
+  group_by(state) %>%
+  summarise(total_spending = sum(total_spend, na.rm = TRUE))  # Ensure you're using the correct column
+
+# Replace NA values with 0 for states with no data
+immigration_spending$total_spending[is.na(immigration_spending$total_spending)] <- 0
+#
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+
+# Define a color palette using a single blue color
+pal_color <- colorNumeric(palette = "#154fd7", domain = log1p(zip_spending$total_spending))
+
+# Define a function for opacity based on spending amount
+pal_opacity <- scales::rescale(log1p(immigration_spending$total_spending), to = c(0.2, 1))
+
+# # Create the leaflet map
+# leaflet(immigration_targeting_geo) %>%
+#   addProviderTiles("CartoDB.DarkMatter") %>%
+#   addPolygons(
+#     data = states, color = "white", weight = 1,
+#     fillOpacity = 0,
+#     highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+#   ) %>%
+#   addCircles(
+#     lng = ~longitude, lat = ~latitude,
+#     fillColor = "#154fd7", fillOpacity = ~pal_opacity,  # Adjust opacity dynamically
+#     color = "#154fd7", weight = 1, radius = 15000,
+#     popup = ~paste("Zip Code: ", postal_codes_included,
+#                    "State: ", state,
+#                    "Total Spending: $", scales::comma(total_spend)),
+#     popupOptions = popupOptions(closeOnClick = TRUE)
+#   ) %>%
+#   setView(lng = -96, lat = 37.8, zoom = 4)
+
+```
+
+<br>
+
+```{r , out.width="100%", fig.height=4.5}
+
+test_targeting <- rbind(reproductive_targeting_geo, economy_targeting_geo, foreign_policy_targeting_geo,
+                        project_2025_targeting_geo, healthcare_targeting_geo, personal_targeting_geo, 
+                        tax_targeting_geo, hate_targeting_geo, immigration_targeting_geo)
+# Get US state boundaries
+states <- map("state", fill = TRUE, plot = FALSE)
+# Define color and opacity for all topics
+pal_color <- colorFactor(palette = "Set1", domain = unique(test_targeting$topic))
+pal_opacity <- scales::rescale(log1p(test_targeting$total_spend), to = c(0.2, 1))
+# Initialize the leaflet map
+map <- leaflet() %>%
+  addProviderTiles("CartoDB.DarkMatter") %>%
+  addPolygons(
+    data = states, color = "white", weight = 1,
+    fillOpacity = 0,
+    highlightOptions = highlightOptions(color = "white", weight = 2, bringToFront = FALSE)
+  ) %>%
+  # Add reproductive targeting
+  addCircles(
+    data = test_targeting %>% filter(topic == "Reproductive"),
+    lng = ~longitude, lat = ~latitude,
+    fillColor = ~pal_color("Reproductive"), fillOpacity = ~pal_opacity,
+    color = ~pal_color("Reproductive"), weight = 1, radius = 15000,
+    popup = ~paste("Zip Code: ", postal_codes_included,
+                   "State: ", state,
+                   "Total Spending: $", scales::comma(total_spend)),
+    group = "Reproductive",
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  # Add economy targeting
+  addCircles(
+    data = test_targeting %>% filter(topic == "Economy"),
+    lng = ~longitude, lat = ~latitude,
+    fillColor = ~pal_color("Economy"), fillOpacity = ~pal_opacity,
+    color = ~pal_color("Economy"), weight = 1, radius = 15000,
+    popup = ~paste("Zip Code: ", postal_codes_included,
+                   "State: ", state,
+                   "Total Spending: $", scales::comma(total_spend)),
+    group = "Economy",
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  # Add foreign policy targeting
+  addCircles(
+    data = test_targeting %>% filter(topic == "Foreign Policy"),
+    lng = ~longitude, lat = ~latitude,
+    fillColor = ~pal_color("Foreign Policy"), fillOpacity = ~pal_opacity,
+    color = ~pal_color("Foreign Policy"), weight = 1, radius = 15000,
+    popup = ~paste("Zip Code: ", postal_codes_included,
+                   "State: ", state,
+                   "Total Spending: $", scales::comma(total_spend)),
+    group = "Foreign Policy",
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  # Add Project 2025 targeting
+  addCircles(
+    data = test_targeting %>% filter(topic == "Project 2025"),
+    lng = ~longitude, lat = ~latitude,
+    fillColor = ~pal_color("Project 2025"), fillOpacity = ~pal_opacity,
+    color = ~pal_color("Project 2025"), weight = 1, radius = 15000,
+    popup = ~paste("Zip Code: ", postal_codes_included,
+                   "State: ", state,
+                   "Total Spending: $", scales::comma(total_spend)),
+    group = "Project 2025",
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  # Add healthcare targeting
+  addCircles(
+    data = test_targeting %>% filter(topic == "Healthcare"),
+    lng = ~longitude, lat = ~latitude,
+    fillColor = ~pal_color("Healthcare"), fillOpacity = ~pal_opacity,
+    color = ~pal_color("Healthcare"), weight = 1, radius = 15000,
+    popup = ~paste("Zip Code: ", postal_codes_included,
+                   "State: ", state,
+                   "Total Spending: $", scales::comma(total_spend)),
+    group = "Healthcare",
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  # Add personal targeting
+  addCircles(
+    data = test_targeting %>% filter(topic == "Personal"),
+    lng = ~longitude, lat = ~latitude,
+    fillColor = ~pal_color("Personal"), fillOpacity = ~pal_opacity,
+    color = ~pal_color("Personal"), weight = 1, radius = 15000,
+    popup = ~paste("Zip Code: ", postal_codes_included,
+                   "State: ", state,
+                   "Total Spending: $", scales::comma(total_spend)),
+    group = "Personal",
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  # Add tax targeting
+  addCircles(
+    data = test_targeting %>% filter(topic == "Tax"),
+    lng = ~longitude, lat = ~latitude,
+    fillColor = ~pal_color("Tax"), fillOpacity = ~pal_opacity,
+    color = ~pal_color("Tax"), weight = 1, radius = 15000,
+    popup = ~paste("Zip Code: ", postal_codes_included,
+                   "State: ", state,
+                   "Total Spending: $", scales::comma(total_spend)),
+    group = "Tax",
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  # Add hate targeting
+  addCircles(
+    data = test_targeting %>% filter(topic == "Hate"),
+    lng = ~longitude, lat = ~latitude,
+    fillColor = ~pal_color("Hate"), fillOpacity = ~pal_opacity,
+    color = ~pal_color("Hate"), weight = 1, radius = 15000,
+    popup = ~paste("Zip Code: ", postal_codes_included,
+                   "State: ", state,
+                   "Total Spending: $", scales::comma(total_spend)),
+    group = "Hate",
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  # Add immigration targeting
+  addCircles(
+    data = test_targeting %>% filter(topic == "Immigration"),
+    lng = ~longitude, lat = ~latitude,
+    fillColor = ~pal_color("Immigration"), fillOpacity = ~pal_opacity,
+    color = ~pal_color("Immigration"), weight = 1, radius = 15000,
+    popup = ~paste("Zip Code: ", postal_codes_included,
+                   "State: ", state,
+                   "Total Spending: $", scales::comma(total_spend)),
+    group = "Immigration",
+    popupOptions = popupOptions(closeOnClick = TRUE)
+  ) %>%
+  # Add layer control to toggle topics
+  addLayersControl(
+    overlayGroups = unique(test_targeting$topic),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>%
+  # Set initial view
+  setView(lng = -96, lat = 37.8, zoom = 4)
+# Print the map
+map
+
+
+```
+
+
+
+
+
