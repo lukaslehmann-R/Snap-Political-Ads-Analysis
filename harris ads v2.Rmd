@@ -146,6 +146,8 @@ library(leaflet)
 library(maps)  # To get state boundaries
 library(purrr)
 
+library(metathis)
+
 #https://github.com/lukaslehmann-R/Snap-Political-Ads-Analysis/blob/af9c88a69fa1036cc28f8d293682a9529176f6bd/images/Screenshot%202024-11-29%20at%2011.29.50%E2%80%AFAM.png
 #NOTE 11/29: delete from html and down if it doesn't work
 
@@ -160,6 +162,26 @@ sum(snap_political_ads$spend)
 # systemfonts::system_fonts() |> View()
 
 ```
+
+```{r}
+meta() %>%
+  meta_description(
+    "An analysis of ads run by the Harris campaign on Snapchat"
+  ) %>% 
+  meta_name("github-repo" = "lukaslehmann-R/Snap-Political-Ads-Analysis") %>% 
+  meta_viewport() %>% 
+  meta_social(
+    title = "Snapchat Political Ads Analysis",
+    url = "https://lionfish-app-lbq4f.ondigitalocean.app/",
+    image = "https://images.pexels.com/photos/4848668/pexels-photo-4848668.jpeg",
+    image_alt = "Social media app on phone showcasing political ads analysis",
+    og_type = "website",
+    og_author = "Lukas Lehmann",
+    twitter_card_type = "summary_large_image",
+    twitter_creator = "@LukasLehmann70"
+  )
+```
+
 
 # Deducing Strategy from Data
 
