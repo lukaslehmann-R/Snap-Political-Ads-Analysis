@@ -19,7 +19,7 @@ output:
   <title>Snapchat Political Ads Analysis</title>
   <meta property="og:title" content="Snapchat Political Ads Analysis" />
   <meta property="og:description" content="An analysis of ads run by the Harris campaign on Snapchat" />
-  <meta property="og:image" content="https://github.com/lukaslehmann-R/Snap-Political-Ads-Analysis/blob/af9c88a69fa1036cc28f8d293682a9529176f6bd/images/Screenshot%202024-11-29%20at%2011.29.50%E2%80%AFAM.png" />
+  <meta property="og:image" content="https://www.pexels.com/photo/social-media-application-on-a-phone-4848668/" />
   <meta property="og:url" content="https://lionfish-app-lbq4f.ondigitalocean.app/" />
   <meta name="twitter:card" content="summary_large_image" />
 </head>
