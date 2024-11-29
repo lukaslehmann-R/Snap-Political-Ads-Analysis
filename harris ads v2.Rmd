@@ -1,7 +1,7 @@
 ---
 title: "Snapchat Political Ads Analysis"
 author: "Lukas Lehmann"
-date: "2024-09-27"
+date: "2024-11-25"
 output:
   html_document:
     toc: true                # Enable Table of Contents
@@ -119,6 +119,15 @@ output:
 <div id="main-content">
 
 
+<html>
+<head>
+<title>Snapchat Political Ads Analysis4</title>
+<meta property="og:title" content="Snapchat Political Ads Analysis4" />
+<meta property="og:image" content="https://github.com/lukaslehmann-R/Snap-Political-Ads-Analysis/blob/af9c88a69fa1036cc28f8d293682a9529176f6bd/images/Screenshot%202024-11-29%20at%2011.29.50%E2%80%AFAM.png" />
+...
+</head>
+...
+</html>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
@@ -133,6 +142,9 @@ library(zipcodeR)
 library(leaflet)
 library(maps)  # To get state boundaries
 library(purrr)
+
+#https://github.com/lukaslehmann-R/Snap-Political-Ads-Analysis/blob/af9c88a69fa1036cc28f8d293682a9529176f6bd/images/Screenshot%202024-11-29%20at%2011.29.50%E2%80%AFAM.png
+#NOTE 11/29: delete from html and down if it doesn't work
 
 #switch body font to avenir
 #Tahoma bold for headings
