@@ -210,13 +210,13 @@ us_ads_summary <- us_ads %>%
 ```
 
 
-I began this side project with the goal of collecting data from Snapchat and comparing the differences in spending between the Harris and Trump campaigns. However, to my surprise, I found that the Trump campaign was not spending ANY money on political advertisements on Snapchat. This may suggest a number of things about the Trump campaign's strategy, such as...
+I began this side project with the goal of collecting data from Snapchat and comparing the differences in spending between the Harris and Trump campaigns. However, to my surprise, I found that the Trump campaign did not spend ANY money on political advertisements on Snapchat. This may suggest a number of things about the Trump campaign's strategy, such as...
 
-1) Targeting Gen Z and Millenials is likely not a key part of its strategy considering the [demographics](https://www.emarketer.com/insights/snapchat-user-statistics/) of its user base skews younger. 
+1) Targeting Gen Z and Millenials was not a key part of its strategy considering that the [demographics](https://www.emarketer.com/insights/snapchat-user-statistics/) of Snapchat's user base skews younger. 
 
 OR perhaps more likely...
 
-2) There may be another platform that has proven to be more effective for them in reaching younger voters. In this project, I will only be looking at Snapchat data, but I may do a comparison of the different platforms to see which one gets candidates more bang for their buck.
+2) There may be another platform that has proven to be more effective for them in reaching younger voters. In this project, I will only be looking at Snapchat data, but I may do a comparison in the future of the different platforms to see which one gets candidates more bang for their buck.
 
 Without further ado, let's jump in!
 
@@ -745,6 +745,8 @@ leaflet(zip_targeting_geo) %>%
 <br>
 
 # Content Comparison
+
+<br>
 
 Aside from the "General/Other" category, the ad categories the Harris campaign has spent the most amount of money on so far are "Attack", "Reproductive", and "Personal". Attack ads are those which focused on negative aspects of Trump or his campaign. Ads in the "Reproductive" category are those which focused on abortion, IVF, or anything else related to reproductive issues. This category had quite a bit of overlap with Project 2025 ads, as many mentioned both. Ads in the "Personal" category focused on the positive aspects of Kamala Harris as a person or were stories about her life or career.
 
@@ -1648,6 +1650,16 @@ map
 
 
 ```
+
+
+# Conclusion
+
+<br>
+
+The Harris campaign relied heavily on two primary kinds of advertisements on Snapchat in order to mobilize younger voters. Those two kinds of ads were: 1) attack ads against Trump, and 2) ads about reproductive rights and/or Project 2025. 
+
+
+
 
 
 
