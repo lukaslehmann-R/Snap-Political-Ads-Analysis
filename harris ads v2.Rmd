@@ -650,7 +650,7 @@ plotly_chart
 
 <br>
 
-From this map, we can get a better idea of which parts of the swing states the Harris campaign is most interested in reaching. Just from a glance, we can see heavy clustering around urban centers of Pennsylvania, Nevada, and Michigan as well as the suburban areas around them. This is in stark contrast to Arizona, Wisconsin, Georgia, North Carolina, and New Hampshire where the targeting based on zipcode is far more dispersed. 
+From this map, we can get a better idea of which parts of the swing states the Harris campaign was most interested in reaching. Just from a glance, we can see heavy clustering around urban centers of Pennsylvania, Nevada, and Michigan as well as the suburban areas around them. This is in stark contrast to Arizona, Wisconsin, Georgia, North Carolina, and New Hampshire where the targeting based on zipcode is far more dispersed. 
 
 <br>
 
@@ -1652,11 +1652,16 @@ map
 ```
 
 
-# Conclusion
+# Final Thoughts
 
 <br>
 
-The Harris campaign relied heavily on two primary kinds of advertisements on Snapchat in order to mobilize younger voters. Those two kinds of ads were: 1) attack ads against Trump, and 2) ads about reproductive rights and/or Project 2025. 
+The Harris campaign relied heavily on three primary types of advertisements on Snapchat in order to mobilize younger voters. Those three types of ads were: 1) general (reminder of election/name recognition), 2) attack ads against Trump, and 3) ads about reproductive rights and/or Project 2025. Among young voters whose top issue was abortion, 79% favored Harris, according to an [AP Votecast Survey.](https://circle.tufts.edu/latest-research/overall-youth-turnout-down-2020-strong-battleground-states) Given these margins, the strategy seemed to overly rely on driving turnout of young people who agreed with the campaign's stated positions on reproductive rights and who already felt negatively about Trump. 
+
+It is now clear that this combination of messages was not effective at driving youth voter turnout, considering that it was lower in 2024 than 2020. According to the aforementioned survey, the top five issues for young voters in order were 1) the economy, 2) abortion, 3) immigration, 4) healthcare, and 5) climate change. If we refer back to the content comparison chart, we see the campaign spent next to no money on messaging regarding immigration, despite it being in the top three issues for young people. Spending on messaging regarding healthcare and the economy was also relatively low compared to their respective levels of importance to young people.
+
+In the future, I may look at ad spending on other social media advertisements by the Harris campaign to see how it compares. For now, thank you for reading!
+
 
 
 

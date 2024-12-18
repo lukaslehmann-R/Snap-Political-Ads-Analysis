@@ -5,4 +5,4 @@ I set out on the project with the idea that I would compare spending on politica
 
 As a result, the focus of this project to just learning what I could about how the Harris campaign spends money on the platform.
 
-harris ads.Rmd is the main script that should be run to yield the html file.
+harris ads v2.Rmd is the main script that should be run to yield the html file.

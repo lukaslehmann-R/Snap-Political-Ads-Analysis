@@ -1,0 +1,25 @@
+---
+title: "verify"
+author: "Lukas Lehmann"
+date: "2024-10-22"
+output: html_document
+---
+
+Verifying Campaigns
+
+```{r}
+
+library(DT)
+
+verify_df <- harris_ads_official %>%
+  filter(str_trim(creative_properties) == "web_view_url:https://kamalaharris.com/issues/?utm_medium=ads&utm_source=Snapchat&utm_content=Stories&utm_campaign=GM-C")
+
+# Convert the 'creative_url' column to clickable links
+verify1 <- verify_df %>%
+  mutate(creative_url = paste0('<a href="', creative_url, '" target="_blank">', creative_url, '</a>'))
+
+# Create a datatable with clickable links
+datatable(verify1, escape = FALSE, options = list(pageLength = 5))
+
+
+```
