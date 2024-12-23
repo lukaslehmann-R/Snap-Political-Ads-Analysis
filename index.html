@@ -3,74 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lukas K. Lehmann | Data Analyst Portfolio</title>
+    <title>Lukas K. Lehmann | Homepage</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         body {
-            font-family: 'Roboto', Arial, sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f4f4f9;
             color: #333;
         }
+
+        /* Top Menu Bar Styling */
         header {
-            background-color: #1c1c1c; /* Darker and more professional */
+            background-color: #1f3c88;
             color: white;
             padding: 10px 10%;
             text-align: center;
-            border-bottom: 2px solid #444; /* Subtle grey divider */
         }
+
         header h1 {
             margin: 0;
-            font-size: 2em;
+            font-size: 1.8em; /* Smaller font size */
         }
+
         header p {
             font-size: 1em;
             margin: 5px 0 0;
         }
+
         nav {
-            background-color: #2e2e2e;
+            background-color: #333;
             color: white;
             display: flex;
             justify-content: center;
-            padding: 8px 0;
+            padding: 8px 0; /* Reduced height of navigation */
         }
+
         nav a {
             color: white;
             text-decoration: none;
-            margin: 0 15px;
+            margin: 0 10px;
             font-size: 1em;
         }
+
         nav a:hover {
             text-decoration: underline;
         }
-        main {
+
+        /* Full-screen GIF Background */
+        .background-container {
             position: relative;
-            z-index: 2;
-            text-align: center;
-        }
-        .fullscreen-gif {
-            background: url("images/datagif4.gif") no-repeat center center fixed;
+            width: 100%;
+            height: 100vh; /* Full screen height */
+            background: url('images/datagif4.gif') center center no-repeat;
             background-size: cover;
-            height: 100vh;
-            position: relative;
+        }
+
+        /* Overlay content on top of the GIF */
+        .content-on-gif {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh; /* Matches the height of the GIF container */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             color: white;
-            text-shadow: 0px 0px 10px rgba(0, 0, 0, 0.7);
+            text-shadow: 0px 2px 5px rgba(0, 0, 0, 0.7);
+            text-align: center;
         }
-        .fullscreen-gif h2 {
-            font-size: 2.5em;
+
+        .content-on-gif h2 {
+            font-size: 3em;
             margin-bottom: 15px;
         }
-        .fullscreen-gif p {
+
+        .content-on-gif p {
             font-size: 1.2em;
             margin-bottom: 20px;
-            line-height: 1.6;
-            max-width: 800px;
         }
+
         .button {
             display: inline-block;
             padding: 10px 20px;
@@ -82,55 +97,71 @@
             cursor: pointer;
             margin: 5px;
         }
+
         .button-gold {
-            background-color: #b8860b; /* Darker gold */
+            background-color: #e6b800; /* Darker yellow */
         }
         .button-gold:hover {
-            background-color: #8b6508;
+            background-color: #cc9900; /* Even darker on hover */
         }
         .button-blue {
-            background-color: #1e90ff;
+            background-color: blue;
         }
         .button-blue:hover {
-            background-color: #1c86ee;
+            background-color: darkblue;
         }
         .button-purple {
-            background-color: #800080;
+            background-color: purple;
         }
         .button-purple:hover {
-            background-color: #5a005a;
+            background-color: darkviolet;
         }
         .button-grey {
-            background-color: #7b7b7b; /* Steel grey */
+            background-color: #7b7b7b;
         }
-        .button-grey:hover {
-            background-color: #5f5f5f; /* Darker grey */
+        .button-black:hover {
+            background-color: #5f5f5f;
         }
-        .content {
-            position: relative;
-            z-index: 3;
-            margin-top: -150px; /* Adjust to keep buttons on the gif */
+
+        /* Align all sections (Projects, Other Links) on top of the GIF */
+        .additional-links {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .additional-links h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
+    <!-- Top Bar -->
     <header>
         <h1>Lukas K. Lehmann | Data Analyst Portfolio</h1>
-        <p>Empowering Data-Driven Decisions</p>
+        <p>Exploring the intersection of International Relations and Data Science</p>
     </header>
+
+    <!-- Navigation -->
     <nav>
         <a href="index.html">Home</a>
         <a href="about.html">About Me</a>
     </nav>
-    <div class="fullscreen-gif">
-        <h2>Insights Through Data</h2>
-        <p>Explore my portfolio of data analysis projects, visualizations, and dashboards, designed to uncover insights and drive strategic decision-making.</p>
-        <div class="content">
-            <a href="snap_project.html" class="button button-gold" target="_blank">Political Ad Analysis Dashboard</a>
-            <a href="https://5khct2-lukas-lehmann.shinyapps.io/Fentanyl_Dashboard/" class="button button-blue" target="_blank">Fentanyl Seizures Dashboard</a>
-            <h2>Other Links...</h2>
-            <a href="https://github.com/lukaslehmann-R" class="button button-purple" target="_blank">Visit My Github</a>
-            <a href="https://x.com/LukasLehmann70" class="button button-grey" target="_blank">Follow Me on Twitter</a>
+
+    <!-- Fullscreen GIF Background Section with Content -->
+    <div class="background-container">
+        <div class="content-on-gif">
+            <h2>Welcome to My Website</h2>
+            <p>Explore my portfolio of data analysis projects, visualizations, and dashboards, designed to uncover insights and drive strategic decision-making.</p>
+            <div>
+                <a href="snap_project.html" class="button button-gold" target="_blank">Harris Campaign Snapchat Ads Analysis</a>
+                <a href="https://5khct2-lukas-lehmann.shinyapps.io/Fentanyl_Dashboard/" class="button button-blue" target="_blank">Fentanyl Seizures Dashboard</a>
+            </div>
+            <div class="additional-links">
+                <h2>Other Links...</h2>
+                <a href="https://github.com/lukaslehmann-R" class="button button-purple" target="_blank">Visit My Github</a>
+                <a href="https://x.com/LukasLehmann70" class="button button-black" target="_blank">Follow Me on Twitter</a>
+            </div>
         </div>
     </div>
 </body>
