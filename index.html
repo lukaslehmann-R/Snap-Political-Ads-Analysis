@@ -18,7 +18,7 @@
         header {
             background-color: #1f3c88;
             color: white;
-            padding: 10px 10%; /* Reduced padding for a smaller bar */
+            padding: 10px 10%;
             text-align: center;
         }
 
@@ -51,12 +51,12 @@
             text-decoration: underline;
         }
 
-        /* GIF Background Section */
+        /* Full-screen GIF Background */
         .background-container {
             position: relative;
             width: 100%;
-            height: 80vh; /* 80% of the viewport height */
-            background: url('images/datagif3.gif') center center no-repeat;
+            height: 100vh; /* Full screen height */
+            background: url('images/datagif4.gif') center center no-repeat;
             background-size: cover;
         }
 
@@ -66,7 +66,7 @@
             top: 0;
             left: 0;
             width: 100%;
-            height: 80vh; /* Matches the height of the GIF container */
+            height: 100vh; /* Matches the height of the GIF container */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -99,10 +99,10 @@
         }
 
         .button-gold {
-            background-color: gold;
+            background-color: #e6b800; /* Darker yellow */
         }
         .button-gold:hover {
-            background-color: darkgoldenrod;
+            background-color: #cc9900; /* Even darker on hover */
         }
         .button-blue {
             background-color: blue;
@@ -122,6 +122,17 @@
         .button-black:hover {
             background-color: #333;
         }
+
+        /* Align all sections (Projects, Other Links) on top of the GIF */
+        .additional-links {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .additional-links h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -137,7 +148,7 @@
         <a href="about.html">About Me</a>
     </nav>
 
-    <!-- GIF Background Section with Content -->
+    <!-- Fullscreen GIF Background Section with Content -->
     <div class="background-container">
         <div class="content-on-gif">
             <h2>Welcome to My Website</h2>
@@ -146,18 +157,12 @@
                 <a href="snap_project.html" class="button button-gold" target="_blank">Harris Campaign Snapchat Ads Analysis</a>
                 <a href="https://5khct2-lukas-lehmann.shinyapps.io/Fentanyl_Dashboard/" class="button button-blue" target="_blank">Fentanyl Seizures Dashboard</a>
             </div>
-        </div>
-    </div>
-
-    <!-- Main Content (Optional additional sections below the GIF) -->
-    <main>
-        <section>
-            <h2>Other Links...</h2>
-            <div class="content">
+            <div class="additional-links">
+                <h2>Other Links...</h2>
                 <a href="https://github.com/lukaslehmann-R" class="button button-purple" target="_blank">Visit My Github</a>
                 <a href="https://x.com/LukasLehmann70" class="button button-black" target="_blank">Follow Me on Twitter</a>
             </div>
-        </section>
-    </main>
+        </div>
+    </div>
 </body>
 </html>
