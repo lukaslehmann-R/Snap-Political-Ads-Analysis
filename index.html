@@ -13,52 +13,73 @@
             background-color: #f4f4f9;
             color: #333;
         }
+
+        /* Full-Width Header */
         header {
             background-color: #1f3c88;
             color: white;
             padding: 20px 10%;
             text-align: center;
+            position: relative;
+            z-index: 2;
         }
+
         header h1 {
             margin: 0;
             font-size: 2.5em;
         }
+
         header p {
             font-size: 1.2em;
             margin: 10px 0 0;
         }
+
+        /* Navigation */
         nav {
             background-color: #333;
             color: white;
             display: flex;
             justify-content: center;
             padding: 10px 0;
+            position: relative;
+            z-index: 2;
         }
+
         nav a {
             color: white;
             text-decoration: none;
             margin: 0 15px;
             font-size: 1.2em;
         }
+
         nav a:hover {
             text-decoration: underline;
         }
+
+        /* Main Content */
         main {
             padding: 20px 10%;
+            position: relative;
+            z-index: 2;
         }
+
         .content {
             max-width: 800px;
             margin: auto;
             text-align: center;
         }
+
         .content h2 {
             font-size: 2em;
             margin-bottom: 15px;
         }
+
         .content p {
             line-height: 1.6;
             margin-bottom: 20px;
         }
+
+        /* Buttons */
         .button {
             display: inline-block;
             padding: 10px 20px;
@@ -94,35 +115,43 @@
         .button-black:hover {
             background-color: #333;
         }
+
+        /* Background GIF Styling */
+        .background-container {
+            width: 100%;
+            height: 50vh; /* Half the page height */
+            background: url('images/datagif1.gif') center center no-repeat;
+            background-size: cover;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1; /* Set behind content */
+        }
+
+        /* Overlay Content */
         section {
             margin-top: 30px;
             text-align: center;
         }
-        .gif-container {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .gif-container img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 10px;
-        }
     </style>
 </head>
 <body>
+    <!-- Background GIF -->
+    <div class="background-container"></div>
+
+    <!-- Website Header -->
     <header>
         <h1>Lukas K. Lehmann</h1>
         <p>Exploring the intersection of International Relations and Data Science</p>
     </header>
 
-    <div class="gif-container">
-        <img src="images/datagif1.gif" alt="Data Visualization GIF">
-    </div>
-
+    <!-- Navigation Bar -->
     <nav>
         <a href="index.html">Home</a>
         <a href="about.html">About Me</a>
     </nav>
+
+    <!-- Main Content -->
     <main>
         <div class="content">
             <h2>Welcome to My Website</h2>
